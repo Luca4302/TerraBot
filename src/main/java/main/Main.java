@@ -20,7 +20,7 @@ public final class Main {
     public static final ObjectWriter WRITER = MAPPER.writer().withDefaultPrettyPrinter();
 
     /**
-     * @param inputPath input file path
+     * @param inputPath  input file path
      * @param outputPath output file path
      * @throws IOException when files cannot be loaded.
      */
@@ -31,7 +31,7 @@ public final class Main {
         ArrayNode output = MAPPER.createArrayNode();
 
 
-            Time time = new Time(inputPath, output);
+        Time time = new Time(inputPath, output);
 
         /*
          * TODO Implement your function here
@@ -57,16 +57,20 @@ public final class Main {
     }
 }
 
-interface EnvironmentActions{
-    public void plantEvolution(); // de pus animal.status
-    public void quality(Double air, Double earth, Double water);
+interface EnvironmentActions {
+    void plantEvolution(); // de pus animal.status
+
+    void quality(Double air, Double earth, Double water);
 }
-interface TerraBotActions{
-    public void move(PlanetMap theMap); // de pus terraBot.pozitie
-    public void scanner(String color, String sound, String smell, PlanetMap theMap); // de pus terraBot.inventory (Enum plante animale apa) si animal.EnumItem.quantity
+
+interface TerraBotActions {
+    void move(PlanetMap theMap); // de pus terraBot.pozitie
+
+    void scanner(String color, String sound, String smell, PlanetMap theMap); // de pus terraBot.inventory (Enum plante animale apa) si animal.EnumItem.quantity
 }
-interface AnimalActions{
-    public void animalMovement(PlanetMap theMap, int currentX, int currentY);//de pus pozitia animal.pozitie
+
+interface AnimalActions {
+    void animalMovement(PlanetMap theMap, int currentX, int currentY);//de pus pozitia animal.pozitie
 }//mai tarziu
 
 

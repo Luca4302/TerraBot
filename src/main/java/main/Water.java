@@ -1,10 +1,11 @@
 package main;
 
 import static java.lang.Math.abs;
-class Water extends Entity{
 
-    public Water(String name, String type, Double mass, double purity, double salinity, double turbidity, double contaminantIndex,double pH, boolean isFrozen) {
-        super(name,type, mass);
+class Water extends Entity {
+
+    public Water(String name, String type, Double mass, double purity, double salinity, double turbidity, double contaminantIndex, double pH, boolean isFrozen) {
+        super(name, type, mass);
         this.purity = purity;
         this.salinity = salinity;
         this.turbidity = turbidity;
@@ -12,6 +13,7 @@ class Water extends Entity{
         this.isFrozen = isFrozen;
         this.pH = pH;
     }
+
     double pH;
     boolean isFrozen;
     double purity;
@@ -26,13 +28,14 @@ class Water extends Entity{
     double frozen_score;
     double water_quality;
     String waterQualityString;
-    public double quality(){
-        purity_score        = purity / 100;
-        pH_score            = 1 - abs(pH - 7.5) / 7.5;
-        salinity_score      = 1 - (salinity / 350);
-        turbidity_score     = 1 - (turbidity / 100);
-        contaminant_score   = 1 - (contaminantIndex / 100);
-        frozen_score        = isFrozen ? 0 : 1;
+
+    public double quality() {
+        purity_score = purity / 100;
+        pH_score = 1 - abs(pH - 7.5) / 7.5;
+        salinity_score = 1 - (salinity / 350);
+        turbidity_score = 1 - (turbidity / 100);
+        contaminant_score = 1 - (contaminantIndex / 100);
+        frozen_score = isFrozen ? 0 : 1;
 
         water_quality =
                 (0.3 * purity_score
@@ -44,6 +47,7 @@ class Water extends Entity{
         waterQualityString = determineQuality(water_quality);
         return water_quality;
     }
+
     public void consume(double amount) {
         this.mass -= amount;
         if (this.mass < 0) {

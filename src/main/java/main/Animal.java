@@ -2,12 +2,11 @@ package main;
 
 class Animal extends Entity implements AnimalActions {
 
-    private AnimalType animalType;
+    private final AnimalType animalType;
     private String state;
     private double pendingSoilBonus;
     int x;
     int y;
-
 
 
     enum AnimalType {
@@ -18,9 +17,11 @@ class Animal extends Entity implements AnimalActions {
         Parasites(10);
 
         private final int attackPossibility;
+
         AnimalType(int attackPossibility) {
             this.attackPossibility = attackPossibility;
         }
+
         public int getAttackPossibility() {
             return this.attackPossibility;
         }
@@ -32,6 +33,7 @@ class Animal extends Entity implements AnimalActions {
         this.state = "hungry";
         this.pendingSoilBonus = 0.0;
     }
+
     @Override
     public void animalMovement(PlanetMap theMap, int currentX, int currentY) {
         int[] dx = {-1, 0, 1, 0};
@@ -148,27 +150,25 @@ class Animal extends Entity implements AnimalActions {
                 currentCell.plant = null;
                 this.state = "well-fed";
                 this.pendingSoilBonus = 0.8;
-            }
-            else if (plantScanned) {
+            } else if (plantScanned) {
                 this.mass += currentCell.plant.getMass();
                 currentCell.plant = null;
                 this.state = "well-fed";
                 this.pendingSoilBonus = 0.5;
-            }
-            else if (waterScanned) {
+            } else if (waterScanned) {
                 double intakeRate = 0.08;
                 double waterToDrink = Math.min(this.mass * intakeRate, currentCell.water.getMass());
                 currentCell.water.consume(waterToDrink);
                 this.mass += waterToDrink;
                 this.state = "well-fed";
                 this.pendingSoilBonus = 0.5;
-            }
-            else {
+            } else {
                 this.state = "hungry";
                 this.pendingSoilBonus = 0.0;
             }
         }
     }
+
     public double getPendingSoilBonus() {
         return this.pendingSoilBonus;
     }

@@ -11,23 +11,20 @@ class TerraBot implements TerraBotActions {
     int x;
     @Getter
     int y;
-    public void moveRobot(PlanetMap theMap) {
-        double stuckChance = theMap.getSoilStuckChance(x,y);
-    }
 
     public void learnFact() {
-        this.battery -=2;
+        this.battery -= 2;
     }
 
     public void rechargeBattery(int timeToCharge) {
-        this.battery= this.battery+timeToCharge;
+        this.battery = this.battery + timeToCharge;
     }
 
     public int energyStatus() {
         return this.battery;
     }
 
-    enum TerraBotInventory{
+    enum TerraBotInventory {
         Plants,
         Animals,
         Water
@@ -56,7 +53,7 @@ class TerraBot implements TerraBotActions {
 
                 // Tragem daunele din entitati (daca nu exista, dauna e 0)
                 double soilDanger = (neighbor.soil != null) ? neighbor.soil.terraBotStuck() : 0.0;
-                int currentScore = getCurrentScore(neighbor, soilDanger);
+                int currentScore = getCurrentScore(neighbor);
 
                 // Alegem celula cu cel mai mic pericol
                 if (currentScore < minDangerScore) {
@@ -71,9 +68,7 @@ class TerraBot implements TerraBotActions {
         this.battery -= minDangerScore;
     }
 
-    private static int getCurrentScore(Cell neighbor, double soilDanger) {
-        double animalDanger = (neighbor.animal != null) ? neighbor.animal.getAttackProbability() : 0.0;
-
+    private int getCurrentScore(Cell neighbor) {
         double soilDanger = (neighbor.soil != null) ? neighbor.soil.terraBotStuck() : 0.0;
         double animalDanger = (neighbor.animal != null) ? neighbor.animal.getAttackProbability() : 0.0;
         double plantDanger = (neighbor.plant != null) ? neighbor.plant.getPlantStuckChance() : 0.0;
@@ -82,7 +77,7 @@ class TerraBot implements TerraBotActions {
         // Formula fixa din PDF
         double sum = soilDanger + airDanger + animalDanger + plantDanger;
         double mean = Math.abs(sum / 4.0);
-        int currentScore = (int) Math.round(mean);
+        return (int) Math.round(mean);
     }
 
     @Override
@@ -96,12 +91,11 @@ class TerraBot implements TerraBotActions {
         if (currentCell.soil != null) currentCell.soil.setScanned();
     }
 
-    public TerraBot(int energieStart){
-        this.battery= energieStart;
+    public TerraBot(int energieStart) {
+        this.battery = energieStart;
     }
 
-    public void accidentFinal(Plants.PlantType plantAccidentChance)
-    {
+    public void accidentFinal(Plants.PlantType plantAccidentChance) {
         accidentTerraBotChance = plantAccidentChance.getterAccident();
     }
 }

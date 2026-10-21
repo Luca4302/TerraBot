@@ -1,6 +1,6 @@
 package main;
 
-class Cell{
+class Cell {
 
     Soil soil;
     Plants plant;
@@ -9,7 +9,7 @@ class Cell{
     Air air;
 
 
-    public Cell(Soil soil, Plants plant, Animal animal, Water water, Air air){
+    public Cell(Soil soil, Plants plant, Animal animal, Water water, Air air) {
         this.soil = soil;
         this.plant = plant;
         this.animal = animal;

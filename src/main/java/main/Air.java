@@ -11,13 +11,13 @@ abstract class Air extends Entity {
         this.airQualityScore = airQuality();
     }
 
-    double humidity;
-    double temperature;
-    double oxygenLevel;
-    double airQualityScore;
-    double toxicityLevel;
-    boolean isAirToxic;
-    String airQualityLevel;
+    protected double humidity;
+    protected double temperature;
+    protected double oxygenLevel;
+    protected double airQualityScore;
+    protected double toxicityLevel;
+    protected boolean isAirToxic;
+    protected String airQualityLevel;
 
     public abstract double airQuality();
 
@@ -30,10 +30,7 @@ abstract class Air extends Entity {
     }
 
     public boolean airToxic() {
-        if (toxicityLevel > 0.8 * getMaxScore()) {
-            return true;
-        } else
-            return false;
+        return toxicityLevel > 0.8 * getMaxScore();
     }
 
     public double toxicityScore() {
@@ -75,21 +72,24 @@ abstract class Air extends Entity {
                 updateAirStatus();
             }
         }
+
         @Override
         public double getMaxScore() {
             return 82;
         }
     }
-    public static class polar extends Air{
+
+    public static class polar extends Air {
         public polar(String name, String type, Double mass, double humidity, double temperature, double oxygenLevel, double iceCrystalConcentration) {
             super(name, type, mass, humidity, temperature, oxygenLevel);
             this.iceCrystalConcentration = iceCrystalConcentration;
         }
+
         double iceCrystalConcentration;
 
         @Override
         public double airQuality() {
-            double score = (oxygenLevel*2) + (100-Math.abs(temperature)) - (iceCrystalConcentration*0.05);
+            double score = (oxygenLevel * 2) + (100 - Math.abs(temperature)) - (iceCrystalConcentration * 0.05);
             return finalScore(score);
         }
 
@@ -108,27 +108,30 @@ abstract class Air extends Entity {
         }
 
     }
-    public static class temperat extends Air{
+
+    public static class temperat extends Air {
         public temperat(String name, String type, Double mass, double humidity, double temperature, double oxygenLevel, double pollenLevel) {
             super(name, type, mass, humidity, temperature, oxygenLevel);
-            this.pollenLevel=pollenLevel;
+            this.pollenLevel = pollenLevel;
         }
+
         double pollenLevel;
+
         @Override
         public double airQuality() {
-            double score = (oxygenLevel*2) + (humidity*0.7) - (pollenLevel*0.1);
+            double score = (oxygenLevel * 2) + (humidity * 0.7) - (pollenLevel * 0.1);
             return finalScore(score);
         }
 
         @Override
         public void changeWeatherConditions(CommandInput comandaVreme) {
-            if(comandaVreme.getType().equals("newSeason")){
+            if (comandaVreme.getType().equals("newSeason")) {
                 String season = comandaVreme.getSeason();
                 double seasonPenalty = 0.0;
-                if(season.equalsIgnoreCase("Spring")){
+                if (season.equalsIgnoreCase("Spring")) {
                     seasonPenalty = 15.0;
                 }
-                airQualityScore-=seasonPenalty;
+                airQualityScore -= seasonPenalty;
             }
             updateAirStatus();
         }
@@ -138,21 +141,24 @@ abstract class Air extends Entity {
             return 84;
         }
     }
-    public static class desert extends Air{
-        public desert(String name, String type, Double mass, double humidity, double temperature, double oxygenLevel,double dustParticles) {
+
+    public static class desert extends Air {
+        public desert(String name, String type, Double mass, double humidity, double temperature, double oxygenLevel, double dustParticles) {
             super(name, type, mass, humidity, temperature, oxygenLevel);
-            this.dustParticles=dustParticles;
+            this.dustParticles = dustParticles;
         }
+
         double dustParticles;
+
         @Override
         public double airQuality() {
-            double score = (oxygenLevel*2) - (dustParticles*0.2) - (temperature*0.3);
+            double score = (oxygenLevel * 2) - (dustParticles * 0.2) - (temperature * 0.3);
             return finalScore(score);
         }
 
         @Override
         public void changeWeatherConditions(CommandInput comandaVreme) {
-            if(comandaVreme.getType().equals("desertStorm")){
+            if (comandaVreme.getType().equals("desertStorm")) {
                 boolean isStorm = comandaVreme.isDesertStorm();
                 airQualityScore = this.airQuality() - (isStorm ? 30 : 0);
             }
@@ -164,12 +170,15 @@ abstract class Air extends Entity {
             return 65;
         }
     }
-    public static class mountain extends Air{
-        public mountain(String name, String type, Double mass, double humidity, double temperature, double oxygenLevel,double altitude) {
+
+    public static class mountain extends Air {
+        public mountain(String name, String type, Double mass, double humidity, double temperature, double oxygenLevel, double altitude) {
             super(name, type, mass, humidity, temperature, oxygenLevel);
-            this.altitude=altitude;
+            this.altitude = altitude;
         }
+
         double altitude;
+
         @Override
         public double airQuality() {
             double oxygenFactor = this.oxygenLevel - (this.altitude / 1000.0 * 0.5);
@@ -179,9 +188,9 @@ abstract class Air extends Entity {
 
         @Override
         public void changeWeatherConditions(CommandInput comandaVreme) {
-            if(comandaVreme.getType().equals("peopleHiking")){
+            if (comandaVreme.getType().equals("peopleHiking")) {
                 double hikerNumber = comandaVreme.getNumberOfHikers();
-                airQualityScore -= (hikerNumber*0.1);
+                airQualityScore -= (hikerNumber * 0.1);
             }
             updateAirStatus();
         }
@@ -191,6 +200,7 @@ abstract class Air extends Entity {
             return 78;
         }
     }
+
     public void increaseHumidity(double amount) {
         this.humidity += amount;
     }
@@ -198,4 +208,4 @@ abstract class Air extends Entity {
     public void addOxygen(double amount) {
         this.oxygenLevel += amount;
     }
-}//mai tarziu
+}

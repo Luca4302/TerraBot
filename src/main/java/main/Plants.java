@@ -1,37 +1,44 @@
 package main;
 
 class Plants extends Entity {
-    private PlantType plantDetails;
-    public Plants(String name, String type,Double mass) {
-        super(name, type,mass);
-        this.plantDetails=PlantType.valueOf(type);
-        this.plantAge=PlantMaturity.Young;
+    private final PlantType plantDetails;
+
+    public Plants(String name, String type, Double mass) {
+        super(name, type, mass);
+        this.plantDetails = PlantType.valueOf(type);
+        this.plantAge = PlantMaturity.Young;
     }
+
     double plantMaturity = 0.0;
     private int stageIndex = 1;
     double oxygenLevel = 0.0;
     PlantMaturity plantAge;
-    enum PlantType{
+
+    enum PlantType {
         FloweringPlants(6.0, 90),
-        GymnospermsPlants(0.0,60),
-        Ferns(0.0,30),
-        Mosses(0.8,40),
-        Algae(0.5,20);
+        GymnospermsPlants(0.0, 60),
+        Ferns(0.0, 30),
+        Mosses(0.8, 40),
+        Algae(0.5, 20);
 
         private final double o2;
         private final Integer accidentChance;
+
         PlantType(double o2, int accidentChance) {
-            this.o2=o2;
+            this.o2 = o2;
             this.accidentChance = accidentChance;
         }
+
         public double getter() {
             return this.o2;
         }
+
         public Integer getterAccident() {
             return this.accidentChance;
         }
     }
-    enum PlantMaturity{
+
+    enum PlantMaturity {
         Young(0.2),
         Mature(0.7),
         Old(0.4),
@@ -39,14 +46,16 @@ class Plants extends Entity {
 
         private final double o2;
 
-        PlantMaturity(double o2){
-            this.o2=o2;
+        PlantMaturity(double o2) {
+            this.o2 = o2;
         }
-        public double getter(){
+
+        public double getter() {
             return this.o2;
         }
     }
-    public PlantMaturity setMaturity(){
+
+    public PlantMaturity setMaturity() {
         return switch (this.stageIndex) {
             case 1 -> PlantMaturity.Young;
             case 2 -> PlantMaturity.Mature;
@@ -55,23 +64,26 @@ class Plants extends Entity {
             default -> null;
         };
     }
-    public void grow(double value){
-        plantMaturity+=value;
-        if(plantMaturity>=1){
-            plantMaturity=0;
+
+    public void grow(double value) {
+        plantMaturity += value;
+        if (plantMaturity >= 1) {
+            plantMaturity = 0;
             stageIndex++;
         }
-        this.plantAge=setMaturity();
+        this.plantAge = setMaturity();
     }
-    public double oxigenGenerated(){
-        oxygenLevel=this.plantAge.getter()+this.plantDetails.getter();
+
+    public double oxigenGenerated() {
+        oxygenLevel = this.plantAge.getter() + this.plantDetails.getter();
         return oxygenLevel;
     }
+
     public double getPlantStuckChance() {
         return this.plantDetails.getterAccident() / 100.0;
     }
 
-    public boolean isDead(){
-        return this.plantAge==PlantMaturity.Dead;
+    public boolean isDead() {
+        return this.plantAge == PlantMaturity.Dead;
     }
 }
