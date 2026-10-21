@@ -1,7 +1,10 @@
 package main;
 
+import lombok.Getter;
+import lombok.Setter;
+@Getter
+@Setter
 class Cell {
-
     Soil soil;
     Plants plant;
     Animal animal;
@@ -16,5 +19,4 @@ class Cell {
         this.water = water;
         this.air = air;
     }
-
 }//posibila exceptie teren negasit apa etc

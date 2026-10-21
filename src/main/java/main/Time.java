@@ -9,16 +9,17 @@ import fileio.SimulationInput;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 
 public class Time {
-    int standByRobot = 0;
-    boolean isSimulationStarted = false;
-    ArrayList<String> learnedFacts = new ArrayList<>();
-    InputLoader loader;
-    ArrayList<CommandInput> inputsList;
-    ArrayList<SimulationInput> simulationInputsList;
-    ArrayNode outputFinal;
-    ObjectMapper mapper = new ObjectMapper();
+    private int standByRobot = 0;
+    private boolean isSimulationStarted = false;
+    private final InputLoader loader;
+    private final ArrayList<CommandInput> inputsList;
+    private final ArrayList<SimulationInput> simulationInputsList;
+    private final ArrayNode outputFinal;
+    private final ObjectMapper mapper = new ObjectMapper();
+    private final LinkedHashMap<String, ArrayList<String>> knowledgeBase = new LinkedHashMap<>();
 
     public Time(String wayToFile, ArrayNode output) throws IOException {
         loader = new InputLoader(wayToFile);
@@ -32,33 +33,25 @@ public class Time {
 
         for (CommandInput contor : inputsList) {
             int currentTimestamp = contor.getTimestamp();
-
-            // Sincronizarea timpului (Game Loop)
             if (theMap != null && lastTimestamp != -1 && isSimulationStarted) {
                 for (int t = lastTimestamp + 1; t <= currentTimestamp; t++) {
                     theMap.applyTimeInteractions(t);
                 }
             }
             lastTimestamp = currentTimestamp;
-
             String actiune = contor.getCommand();
-
-            // 2. Formatul JSON obligatoriu pentru fiecare comanda (Command + Timestamp)
             ObjectNode commandOutput = mapper.createObjectNode();
             commandOutput.put("command", actiune);
             commandOutput.put("timestamp", currentTimestamp);
 
-            // 3. EROARE: Simulare nepornita
             if (!isSimulationStarted && !actiune.equals("startSimulation")) {
                 commandOutput.put("message", "ERROR: Simulation not started. Cannot perform action");
                 this.outputFinal.add(commandOutput);
-                continue; // Sare la urmatoarea comanda
+                continue;
             }
 
-            // 4. EROARE: Robot la incarcat (Doar pt comenzile robotului)
             boolean isCharging = currentTimestamp < standByRobot;
-            if (isCharging && (actiune.equals("moveRobot") || actiune.equals("scanObject") ||
-                    actiune.equals("learnFact") || actiune.equals("improveEnvironment"))) {
+            if (isCharging && (actiune.equals("moveRobot") || actiune.equals("scanObject") || actiune.equals("learnFact") || actiune.equals("improveEnvironment"))) {
                 commandOutput.put("message", "ERROR: Robot still charging. Cannot perform action");
                 this.outputFinal.add(commandOutput);
                 continue;
@@ -80,13 +73,30 @@ public class Time {
                 case "endSimulation":
                     isSimulationStarted = false;
                     theMap = null;
-                    learnedFacts.clear();
+                    knowledgeBase.clear();
                     commandOutput.put("message", "Simulation has ended.");
                     break;
                 case "printEnvConditions":
-                    ObjectNode currentEvent = mapper.createObjectNode();
-                    commandOutput.put("message", "Environment conditions printed.");
-                    Environment.printConditions();
+                    if (theMap == null) {
+                        commandOutput.put("message", "ERROR: Simulation not started. Cannot perform action");
+                    } else {
+                        Cell currentCell = theMap.planetMaps[robot.getX()][robot.getY()];
+                        ObjectNode currentEvent = mapper.createObjectNode();
+
+                        if (currentCell.plant != null)
+                            currentEvent.set("plants", mapper.valueToTree(currentCell.plant));
+                        if (currentCell.animal != null)
+                            currentEvent.set("animals", mapper.valueToTree(currentCell.animal));
+                        if (currentCell.water != null)
+                            currentEvent.set("water", mapper.valueToTree(currentCell.water));
+                        if (currentCell.soil != null) {
+                            currentEvent.set("soil", mapper.valueToTree(currentCell.soil));
+                        }
+                        if (currentCell.air != null) {
+                            currentEvent.set("air", mapper.valueToTree(currentCell.air));
+                        }
+                        commandOutput.set("output", currentEvent);
+                    }
                     break;
                 case "printMap":
                     if (theMap != null) {
@@ -97,8 +107,16 @@ public class Time {
                     if (robot.energyStatus() < 7) {
                         commandOutput.put("message", "ERROR: Not enough battery left. Cannot perform action");
                     } else {
-                        robot.scanner(contor.getColor(), contor.getSound(), contor.getSmell(), theMap);
-                        commandOutput.put("message", "The scanned object was processed.");
+                        String detectedEntity = robot.scanner(contor.getColor(), contor.getSound(), contor.getSmell(), theMap);
+                        if (detectedEntity.equals("animal")) {
+                            commandOutput.put("message", "The scanned object is an animal.");
+                        } else if (detectedEntity.equals("plant")) {
+                            commandOutput.put("message", "The scanned object is a plant.");
+                        } else if (detectedEntity.equals("water")) {
+                            commandOutput.put("message", "The scanned object is water.");
+                        } else {
+                            commandOutput.put("message", "ERROR: Object not found. Cannot perform action");
+                        }
                     }
                     break;
                 case "changeWeatherConditions":
@@ -115,16 +133,27 @@ public class Time {
                     if (robot.energyStatus() <= 0) {
                         commandOutput.put("message", "ERROR: Not enough battery left. Cannot perform action");
                     } else {
-                        robot.move(theMap);
-                        commandOutput.put("message", "The robot has successfully moved to position (" + robot.getX() + ", " + robot.getY() + ").");
+                        boolean successfullMovement = robot.move(theMap);
+                        if (successfullMovement) {
+                            commandOutput.put("message", "The robot has successfully moved to position (" + robot.getX() + ", " + robot.getY() + ").");
+                        } else {
+                            commandOutput.put("message", "ERROR: Not enough battery left. Cannot perform action");
+                        }
+
                     }
                     break;
                 case "learnFact":
-                    if (robot.energyStatus() < 2) {
+                    String subject = contor.getSubject();
+                    if (!robot.scannedEntities.contains(subject)) {
+                        commandOutput.put("message", "ERROR: Subject not yet saved. Cannot perform action");
+                    } else if (robot.energyStatus() < 2) {
                         commandOutput.put("message", "ERROR: Not enough battery left. Cannot perform action");
                     } else {
                         robot.learnFact();
-                        learnedFacts.add(contor.getSubject());
+                        String entityComponent = contor.getComponents();
+                        String subjectComponent = contor.getSubject();
+                        knowledgeBase.putIfAbsent(entityComponent, new ArrayList<>());
+                        knowledgeBase.get(entityComponent).add(subjectComponent);
                         commandOutput.put("message", "The fact has been successfully saved in the database.");
                     }
                     break;
@@ -132,8 +161,40 @@ public class Time {
                     if (robot.energyStatus() < 10) {
                         commandOutput.put("message", "ERROR: Not enough battery left. Cannot perform action");
                     } else {
-                        Environment.improveEnvironment(contor.getImprovementType(), contor.getType(), contor.getName());
-                        commandOutput.put("message", "The environment was improved successfully.");
+                        robot.battery -= 10;
+                        Cell currentCell = theMap.planetMaps[robot.getX()][robot.getY()];
+                        String improvementType = contor.getImprovementType();
+                        String componentName = contor.getName();
+
+                        if (improvementType != null) {
+                            if (improvementType.equals("plantVegetation")) {
+                                if (currentCell.air != null) {
+                                    currentCell.air.addOxygen(0.3);
+                                    currentCell.air.updateAirStatus();
+                                }
+                                commandOutput.put("message", "The " + componentName + " was planted successfully.");
+                            } else if (improvementType.equals("fertilizeSoil")) {
+                                if (currentCell.soil != null) {
+                                    currentCell.soil.addOrganicMatter(0.3);
+                                    currentCell.soil.quality();
+                                    commandOutput.put("message", "The " + currentCell.soil.type + " was successfully fertilized using " + componentName);
+                                }
+                            } else if (improvementType.equals("increaseHumidity")) {
+                                if (currentCell.air != null) {
+                                    currentCell.air.increaseHumidity(0.2);
+                                    currentCell.air.updateAirStatus();
+                                    commandOutput.put("message", "The " + currentCell.air.type + " was successfully increased using " + componentName);
+                                }
+                            } else if (improvementType.equals("increaseMoisture")) {
+                                if (currentCell.soil != null) {
+                                    currentCell.soil.increaseWaterRetention(0.2);
+                                    currentCell.soil.quality();
+                                    commandOutput.put("message", "The " + currentCell.soil.type + " was successfully increased using " + componentName);
+                                }
+                            } else {
+                                commandOutput.put("message", "The environment was improved successfully.");
+                            }
+                        }
                     }
                     break;
                 case "rechargeBattery":
@@ -142,10 +203,23 @@ public class Time {
                     commandOutput.put("message", "Robot battery is charging.");
                     break;
                 case "printKnowledgeBase":
-                    ArrayNode currentKnowledgeBase = mapper.createArrayNode();
-                    for (String fact : learnedFacts)
-                        currentKnowledgeBase.add(fact);
-                    commandOutput.set("output", currentKnowledgeBase);
+                    if (!isSimulationStarted) {
+                        commandOutput.put("message", "ERROR: Simulation not started. Cannot perform action");
+                    } else {
+                        ArrayNode currentKnowledgeBase = mapper.createArrayNode();
+                        for (var entry : knowledgeBase.entrySet()) {
+                            ObjectNode topicNode = mapper.createObjectNode();
+                            topicNode.put("topic", entry.getKey());
+
+                            ArrayNode factsArray = mapper.createArrayNode();
+                            for (String fact : entry.getValue()) {
+                                factsArray.add(fact);
+                            }
+                            topicNode.set("facts", factsArray);
+                            currentKnowledgeBase.add(topicNode);
+                        }
+                        commandOutput.set("output", currentKnowledgeBase);
+                    }
                     break;
             }
             this.outputFinal.add(commandOutput);

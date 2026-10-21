@@ -4,16 +4,6 @@ import static java.lang.Math.abs;
 
 class Water extends Entity {
 
-    public Water(String name, String type, Double mass, double purity, double salinity, double turbidity, double contaminantIndex, double pH, boolean isFrozen) {
-        super(name, type, mass);
-        this.purity = purity;
-        this.salinity = salinity;
-        this.turbidity = turbidity;
-        this.contaminantIndex = contaminantIndex;
-        this.isFrozen = isFrozen;
-        this.pH = pH;
-    }
-
     double pH;
     boolean isFrozen;
     double purity;
@@ -28,6 +18,15 @@ class Water extends Entity {
     double frozen_score;
     double water_quality;
     String waterQualityString;
+    public Water(String name, String type, Double mass, double purity, double salinity, double turbidity, double contaminantIndex, double pH, boolean isFrozen) {
+        super(name, type, mass);
+        this.purity = purity;
+        this.salinity = salinity;
+        this.turbidity = turbidity;
+        this.contaminantIndex = contaminantIndex;
+        this.isFrozen = isFrozen;
+        this.pH = pH;
+    }
 
     public double quality() {
         purity_score = purity / 100;

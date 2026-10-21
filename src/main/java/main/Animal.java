@@ -1,31 +1,15 @@
 package main;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 class Animal extends Entity implements AnimalActions {
 
     private final AnimalType animalType;
-    private String state;
-    private double pendingSoilBonus;
     int x;
     int y;
+    private String state;
+    private double pendingSoilBonus;
 
-
-    enum AnimalType {
-        Herbivores(85),
-        Carnivores(30),
-        Omnivores(60),
-        Detritivores(90),
-        Parasites(10);
-
-        private final int attackPossibility;
-
-        AnimalType(int attackPossibility) {
-            this.attackPossibility = attackPossibility;
-        }
-
-        public int getAttackPossibility() {
-            return this.attackPossibility;
-        }
-    }
 
     public Animal(String name, String type, double mass) {
         super(name, type, mass);
@@ -113,7 +97,7 @@ class Animal extends Entity implements AnimalActions {
         this.x = newX;
         this.y = newY;
     }
-
+    @JsonIgnore
     public double getAttackProbability() {
         return (100.0 - this.animalType.getAttackPossibility()) / 10.0;
     }
@@ -168,13 +152,30 @@ class Animal extends Entity implements AnimalActions {
             }
         }
     }
-
+    @JsonIgnore
     public double getPendingSoilBonus() {
         return this.pendingSoilBonus;
     }
-
+    @JsonIgnore
     public void resetPendingSoilBonus() {
         this.pendingSoilBonus = 0.0;
     }
-}
 
+    enum AnimalType {
+        Herbivores(85),
+        Carnivores(30),
+        Omnivores(60),
+        Detritivores(90),
+        Parasites(10);
+
+        private final int attackPossibility;
+
+        AnimalType(int attackPossibility) {
+            this.attackPossibility = attackPossibility;
+        }
+
+        public int getAttackPossibility() {
+            return this.attackPossibility;
+        }
+    }
+}

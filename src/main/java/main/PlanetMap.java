@@ -3,6 +3,7 @@ package main;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import fileio.CommandInput;
 import fileio.TerritorySectionParamsInput;
 
@@ -109,27 +110,28 @@ class PlanetMap {
                 double temperature = input.getTemperature();
                 double oxygenLevel = input.getOxygenLevel();
 
+
                 for (var coords : input.getSections()) {
                     int x = coords.getX();
                     int y = coords.getY();
                     switch (type) {
-                        case "tropical":
+                        case "TropicalAir":
                             double co2Level = input.getCo2Level();
                             this.planetMaps[x][y].air = new Air.tropical(name, type, mass, humidity, temperature, oxygenLevel, co2Level);
                             break;
-                        case "polar":
+                        case "PolarAir":
                             double iceCrystalConcentration = input.getIceCrystalConcentration();
                             this.planetMaps[x][y].air = new Air.polar(name, type, mass, humidity, temperature, oxygenLevel, iceCrystalConcentration);
                             break;
-                        case "temperat":
+                        case "TemperateAir":
                             double pollenLevel = input.getPollenLevel();
                             this.planetMaps[x][y].air = new Air.temperat(name, type, mass, humidity, temperature, oxygenLevel, pollenLevel);
                             break;
-                        case "desert":
+                        case "DesertAir":
                             double dustParticles = input.getDustParticles();
                             this.planetMaps[x][y].air = new Air.desert(name, type, mass, humidity, temperature, oxygenLevel, dustParticles);
                             break;
-                        case "mountain":
+                        case "MountainAir":
                             double altitude = input.getAltitude();
                             this.planetMaps[x][y].air = new Air.mountain(name, type, mass, humidity, temperature, oxygenLevel, altitude);
                             break;
@@ -152,20 +154,33 @@ class PlanetMap {
 
     public JsonNode printMap(ObjectMapper mapper) {
         ArrayNode jsonMap = mapper.createArrayNode();
-        for (int i = 0; i < rows; i++) {
-            ArrayNode row = mapper.createArrayNode();
-            for (int j = 0; j < cols; j++) {
-                if (planetMaps[i][j].animal != null) {
-                    row.add("A");
-                } else if (planetMaps[i][j].plant != null) {
-                    row.add("P");
-                } else if (planetMaps[i][j].water != null) {
-                    row.add("W");
-                } else
-                    row.add("E");
+
+        for (int j = 0; j < cols; j++) {
+            for (int i = 0; i < rows; i++) {
+                Cell cell = planetMaps[i][j];
+                ObjectNode sectionData = mapper.createObjectNode();
+
+                ArrayNode coords = mapper.createArrayNode();
+                coords.add(i);
+                coords.add(j);
+                sectionData.set("section", coords);
+
+                int totalObjects = 0;
+                if (cell.animal != null) totalObjects++;
+                if (cell.plant != null) totalObjects++;
+                if (cell.water != null) totalObjects++;
+                sectionData.put("totalNrOfObjects", totalObjects);
+
+                String airQ = (cell.air != null) ? cell.air.determineQuality(cell.air.airQuality()) : "N/A";
+                String soilQ = (cell.soil != null) ? cell.soil.determineQuality(cell.soil.quality()) : "N/A";
+
+                sectionData.put("airQuality", airQ);
+                sectionData.put("soilQuality", soilQ);
+
+                jsonMap.add(sectionData);
             }
-            jsonMap.add(row);
         }
+
         return jsonMap;
     }
 

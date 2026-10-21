@@ -1,18 +1,52 @@
 package main;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 class Plants extends Entity {
     private final PlantType plantDetails;
-
+    double plantMaturity = 0.0;
+    double oxygenLevel = 0.0;
+    PlantMaturity plantAge;
+    private int stageIndex = 1;
     public Plants(String name, String type, Double mass) {
         super(name, type, mass);
         this.plantDetails = PlantType.valueOf(type);
         this.plantAge = PlantMaturity.Young;
     }
 
-    double plantMaturity = 0.0;
-    private int stageIndex = 1;
-    double oxygenLevel = 0.0;
-    PlantMaturity plantAge;
+
+
+    public PlantMaturity setMaturity() {
+        return switch (this.stageIndex) {
+            case 1 -> PlantMaturity.Young;
+            case 2 -> PlantMaturity.Mature;
+            case 3 -> PlantMaturity.Old;
+            case 4 -> PlantMaturity.Dead;
+            default -> null;
+        };
+    }
+
+    public void grow(double value) {
+        plantMaturity += value;
+        if (plantMaturity >= 1) {
+            plantMaturity = 0;
+            stageIndex++;
+        }
+        this.plantAge = setMaturity();
+    }
+
+    public double oxigenGenerated() {
+        oxygenLevel = this.plantAge.getter() + this.plantDetails.getter();
+        return oxygenLevel;
+    }
+    @JsonIgnore
+    public double getPlantStuckChance() {
+        return this.plantDetails.getterAccident() / 100.0;
+    }
+    @JsonIgnore
+    public boolean isDead() {
+        return this.plantAge == PlantMaturity.Dead;
+    }
 
     enum PlantType {
         FloweringPlants(6.0, 90),
@@ -55,35 +89,4 @@ class Plants extends Entity {
         }
     }
 
-    public PlantMaturity setMaturity() {
-        return switch (this.stageIndex) {
-            case 1 -> PlantMaturity.Young;
-            case 2 -> PlantMaturity.Mature;
-            case 3 -> PlantMaturity.Old;
-            case 4 -> PlantMaturity.Dead;
-            default -> null;
-        };
-    }
-
-    public void grow(double value) {
-        plantMaturity += value;
-        if (plantMaturity >= 1) {
-            plantMaturity = 0;
-            stageIndex++;
-        }
-        this.plantAge = setMaturity();
-    }
-
-    public double oxigenGenerated() {
-        oxygenLevel = this.plantAge.getter() + this.plantDetails.getter();
-        return oxygenLevel;
-    }
-
-    public double getPlantStuckChance() {
-        return this.plantDetails.getterAccident() / 100.0;
-    }
-
-    public boolean isDead() {
-        return this.plantAge == PlantMaturity.Dead;
-    }
 }

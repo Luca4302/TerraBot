@@ -1,9 +1,15 @@
 package main;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Getter;
+
 abstract class Entity {
+    @Getter
     String name;
     Double mass;
+    @Getter
     String type;
+    private boolean scanned = false;
 
     public Entity(String name, String type, Double mass) {
         this.name = name;
@@ -13,22 +19,19 @@ abstract class Entity {
 
     public String determineQuality(double QualityScore) {
         if (QualityScore < 40) {
-            return "Poor";
+            return "poor";
         } else if (QualityScore >= 70) {
-            return "Good";
+            return "good";
         } else {
-            return "Moderate";
+            return "moderate";
         }
     }
 
-    public double finalScore(double score) {
-        double normalisedScore;
-        normalisedScore = Math.max(0, Math.min(100, score));
+    protected double finalScore(double score) {
+        double normalisedScore = Math.max(0, Math.min(100, score));
         return Math.round(normalisedScore * 100.0) / 100.0;
     }
-
-    private boolean scanned = false;
-
+    @JsonIgnore
     public boolean isScanned() {
         return this.scanned;
     }
@@ -40,4 +43,5 @@ abstract class Entity {
     public double getMass() {
         return this.mass;
     }
+
 }

@@ -1,26 +1,33 @@
 package main;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Getter;
+
 abstract class Soil extends Entity {
 
+    @Getter
+    double nitrogen;
+    @Getter
+    double waterRetention;
+    @Getter
+    double soilpH;
+    @Getter
+    double organicMatter;
+    double soilScoreLevelWord;
     public Soil(String name, String type, double mass, double nitrogen, double waterRetention, double soilpH, double organicMatter) {
         super(name, type, mass);
         this.nitrogen = nitrogen;
         this.waterRetention = waterRetention;
         this.soilpH = soilpH;
         this.organicMatter = organicMatter;
+
     }
+
+    public double getSoilQuality() { return this.quality(); }
 
     public abstract double quality();
 
     public abstract double terraBotStuck();
-
-    double nitrogen;
-    double waterRetention;
-    double soilpH;
-    double organicMatter;
-    double soilScoreNumber;
-    double soilScoreLevelWord;
-
 
     public void soilScore(double finalScore) {
         soilScoreLevelWord = (finalScore);
@@ -36,20 +43,30 @@ abstract class Soil extends Entity {
 //la fel ca la air e basic
 //vezi cum interactioneaza cu plantele
 
+    public void increaseWaterRetention(double amount) {
+        this.waterRetention += amount;
+    }
+
+    public void addOrganicMatter(double amount) {
+        this.organicMatter += amount;
+    }
+
     public static class ForestSoil extends Soil {
+        double leafLitter;
+
         public ForestSoil(String name, String type, double mass, double nitrogen, double waterRetention, double soilpH, double organicMatter, double leafLitter) {
             super(name, type, mass, nitrogen, waterRetention, soilpH, organicMatter);
             this.leafLitter = leafLitter;
         }
 
-        double leafLitter;
-
-        @Override
+        public double getLeafLitter() { return leafLitter; }
+        @Override @JsonIgnore
         public double quality() {
             double score = (nitrogen * 1.2) + (organicMatter * 2) + (waterRetention * 1.5) + (leafLitter * 0.3);
             double finalScore = finalScore(score);
+            double finalScoreVal = finalScore(score);
             soilScore(finalScore);
-            return finalScore;
+            return finalScoreVal;
         }
 
         @Override
@@ -59,19 +76,20 @@ abstract class Soil extends Entity {
     }
 
     public static class SwampSoil extends Soil {
+        double waterLogging;
+
         public SwampSoil(String name, String type, double mass, double nitrogen, double waterRetention, double soilpH, double organicMatter, double waterLogging) {
             super(name, type, mass, nitrogen, waterRetention, soilpH, organicMatter);
             this.waterLogging = waterLogging;
         }
-
-        double waterLogging;
-
-        @Override
+        public double getWaterLogging() { return waterLogging; }
+        @Override @JsonIgnore
         public double quality() {
             double score = (nitrogen * 1.1) + (organicMatter * 2.2) - (waterLogging * 5);
             double finalScore = finalScore(score);
+            double finalScoreVal = finalScore(score);
             soilScore(finalScore);
-            return finalScore;
+            return finalScoreVal;
         }
 
         @Override
@@ -81,18 +99,20 @@ abstract class Soil extends Entity {
     }
 
     public static class DesertSoil extends Soil {
-        public DesertSoil(String name, String type, double mass, double nitrogen, double waterRetention, double soilpH, double organicMatter, double salinity) {
-            super(name, type, mass, nitrogen, waterRetention, soilpH, organicMatter);
-        }
-
         double salinity;
 
-        @Override
+        public DesertSoil(String name, String type, double mass, double nitrogen, double waterRetention, double soilpH, double organicMatter, double salinity) {
+            super(name, type, mass, nitrogen, waterRetention, soilpH, organicMatter);
+            this.salinity=salinity;
+        }
+        public double getSalinity() { return salinity; }
+        @Override @JsonIgnore
         public double quality() {
             double score = (nitrogen * 0.5) + (waterRetention * 0.3) - (salinity * 2);
             double finalScore = finalScore(score);
+            double finalScoreVal = finalScore(score);
             soilScore(finalScore);
-            return finalScore;
+            return finalScoreVal;
         }
 
         @Override
@@ -102,18 +122,20 @@ abstract class Soil extends Entity {
     }
 
     public static class GrasslandSoil extends Soil {
-        public GrasslandSoil(String name, String type, double mass, double nitrogen, double waterRetention, double soilpH, double organicMatter, double rootDensity) {
-            super(name, type, mass, nitrogen, waterRetention, soilpH, organicMatter);
-        }
-
         double rootDensity;
 
-        @Override
+        public GrasslandSoil(String name, String type, double mass, double nitrogen, double waterRetention, double soilpH, double organicMatter, double rootDensity) {
+            super(name, type, mass, nitrogen, waterRetention, soilpH, organicMatter);
+            this.rootDensity = rootDensity;
+        }
+        public double getRootDensity() { return rootDensity; }
+        @Override @JsonIgnore
         public double quality() {
             double score = (nitrogen * 1.3) + (organicMatter * 1.5) + (rootDensity * 0.8);
             double finalScore = finalScore(score);
+            double finalScoreVal = finalScore(score);
             soilScore(finalScore);
-            return finalScore;
+            return finalScoreVal;
         }
 
         @Override
@@ -123,32 +145,26 @@ abstract class Soil extends Entity {
     }
 
     public static class TundraSoil extends Soil {
-        public TundraSoil(String name, String type, double mass, double nitrogen, double waterRetention, double soilpH, double organicMatter, double permafrostDepth) {
-            super(name, type, mass, nitrogen, waterRetention, soilpH, organicMatter);
-        }
-
         double permafrostDepth;
 
-        @Override
+        public TundraSoil(String name, String type, double mass, double nitrogen, double waterRetention, double soilpH, double organicMatter, double permafrostDepth) {
+            super(name, type, mass, nitrogen, waterRetention, soilpH, organicMatter);
+            this.permafrostDepth = permafrostDepth;
+        }
+        public double getPermafrostDepth() { return permafrostDepth; }
+        @Override @JsonIgnore
         public double quality() {
             double score = (nitrogen * 0.7) + (organicMatter * 0.5) - (permafrostDepth * 1.5);
             double finalScore = finalScore(score);
+            double finalScoreVal = finalScore(score);
             soilScore(finalScore);
-            return finalScore;
+            return finalScoreVal;
         }
 
         @Override
         public double terraBotStuck() {
             return (50 - permafrostDepth) / 50 * 100;
         }
-    }
-
-    public void increaseWaterRetention(double amount) {
-        this.waterRetention += amount;
-    }
-
-    public void addOrganicMatter(double amount) {
-        this.organicMatter += amount;
     }
 }
 
