@@ -10,13 +10,13 @@ abstract class Entity {
     @Getter
     String type;
     private boolean scanned = false;
+    private int scannedTimestamp = -1;
 
     public Entity(String name, String type, Double mass) {
         this.name = name;
         this.type = type;
         this.mass = mass;
     }
-
     public String determineQuality(double QualityScore) {
         if (QualityScore < 40) {
             return "poor";
@@ -26,7 +26,6 @@ abstract class Entity {
             return "moderate";
         }
     }
-
     protected double finalScore(double score) {
         double normalisedScore = Math.max(0, Math.min(100, score));
         return Math.round(normalisedScore * 100.0) / 100.0;
@@ -35,13 +34,20 @@ abstract class Entity {
     public boolean isScanned() {
         return this.scanned;
     }
-
     public void setScanned() {
         this.scanned = true;
     }
-
-    public double getMass() {
-        return this.mass;
+    public void setScanned(int timestamp) {
+        if (!this.scanned) {
+            this.scanned = true;
+            this.scannedTimestamp = timestamp;
+        }
     }
-
+    @JsonIgnore
+    public int getScannedTimestamp() {
+        return this.scannedTimestamp;
+    }
+    public double getMass() {
+        return Math.round(this.mass * 100.0) / 100.0;
+    }
 }

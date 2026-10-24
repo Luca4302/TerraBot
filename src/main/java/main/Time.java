@@ -25,10 +25,10 @@ public class Time {
         loader = new InputLoader(wayToFile);
         simulationInputsList = loader.getSimulations();
         inputsList = loader.getCommands();
-        TerraBot robot = new TerraBot(simulationInputsList.getFirst().getEnergyPoints());
+        TerraBot robot = null;
         PlanetMap theMap = null;
         this.outputFinal = output;
-
+        int simIndex = 0;
         int lastTimestamp = -1;
 
         for (CommandInput contor : inputsList) {
@@ -51,7 +51,7 @@ public class Time {
             }
 
             boolean isCharging = currentTimestamp < standByRobot;
-            if (isCharging && (actiune.equals("moveRobot") || actiune.equals("scanObject") || actiune.equals("learnFact") || actiune.equals("improveEnvironment"))) {
+            if (isCharging && !actiune.equals("startSimulation") && !actiune.equals("endSimulation") && !actiune.equals("changeWeatherConditions")) {
                 commandOutput.put("message", "ERROR: Robot still charging. Cannot perform action");
                 this.outputFinal.add(commandOutput);
                 continue;
@@ -62,11 +62,19 @@ public class Time {
                         commandOutput.put("message", "ERROR: Simulation already started. Cannot perform action");
                     } else {
                         isSimulationStarted = true;
-                        String coords = simulationInputsList.getFirst().getTerritoryDim();
+                        SimulationInput currentSim = simulationInputsList.get(simIndex);
+                        if(simIndex<simulationInputsList.size()-1)
+                        {
+                            simIndex++;
+                        }
+                        robot = new TerraBot(currentSim.getEnergyPoints());
+                        standByRobot = 0;
+                        knowledgeBase.clear();
+                        String coords = currentSim.getTerritoryDim();
                         String[] bucati = coords.split("x");
                         int rows = Integer.parseInt(bucati[0]);
                         int cols = Integer.parseInt(bucati[1]);
-                        theMap = new PlanetMap(rows, cols, simulationInputsList.getFirst().getTerritorySectionParams());
+                        theMap = new PlanetMap(rows, cols, currentSim.getTerritorySectionParams());
                         commandOutput.put("message", "Simulation has started.");
                     }
                     break;
@@ -105,9 +113,9 @@ public class Time {
                     break;
                 case "scanObject":
                     if (robot.energyStatus() < 7) {
-                        commandOutput.put("message", "ERROR: Not enough battery left. Cannot perform action");
+                        commandOutput.put("message", "ERROR: Not enough energy to perform action");
                     } else {
-                        String detectedEntity = robot.scanner(contor.getColor(), contor.getSound(), contor.getSmell(), theMap);
+                        String detectedEntity = robot.scanner(contor.getColor(), contor.getSound(), contor.getSmell(), theMap, currentTimestamp);
                         if (detectedEntity.equals("animal")) {
                             commandOutput.put("message", "The scanned object is an animal.");
                         } else if (detectedEntity.equals("plant")) {
@@ -115,13 +123,18 @@ public class Time {
                         } else if (detectedEntity.equals("water")) {
                             commandOutput.put("message", "The scanned object is water.");
                         } else {
+                            robot.battery+=7;
                             commandOutput.put("message", "ERROR: Object not found. Cannot perform action");
                         }
                     }
                     break;
                 case "changeWeatherConditions":
-                    theMap.applyWeather(contor);
-                    commandOutput.put("message", "The weather has changed.");
+                    if(theMap.applyWeather(contor)) {
+                        commandOutput.put("message", "The weather has changed.");
+                    }
+                    else{
+                        commandOutput.put("message", "ERROR: The weather change does not affect the environment. Cannot perform action");
+                    }
                     break;
                 case "getEnergyStatus":
                     if (contor.getTimestamp() >= standByRobot) {
@@ -143,28 +156,35 @@ public class Time {
                     }
                     break;
                 case "learnFact":
-                    String subject = contor.getSubject();
-                    if (!robot.scannedEntities.contains(subject)) {
-                        commandOutput.put("message", "ERROR: Subject not yet saved. Cannot perform action");
-                    } else if (robot.energyStatus() < 2) {
+                    String topicName = contor.getComponents();
+                    String factText = contor.getSubject();
+                    if (robot.energyStatus() < 2) {
                         commandOutput.put("message", "ERROR: Not enough battery left. Cannot perform action");
+                    } else if (topicName == null || !robot.scannedEntities.contains(topicName)) {
+                        commandOutput.put("message", "ERROR: Subject not yet saved. Cannot perform action");
                     } else {
                         robot.learnFact();
-                        String entityComponent = contor.getComponents();
-                        String subjectComponent = contor.getSubject();
-                        knowledgeBase.putIfAbsent(entityComponent, new ArrayList<>());
-                        knowledgeBase.get(entityComponent).add(subjectComponent);
+                        knowledgeBase.putIfAbsent(topicName, new ArrayList<>());
+                        if (!knowledgeBase.get(topicName).contains(factText)) {
+                            knowledgeBase.get(topicName).add(factText);
+                        }
                         commandOutput.put("message", "The fact has been successfully saved in the database.");
                     }
                     break;
                 case "improveEnvironment":
+                    String improvementType = contor.getImprovementType();
+                    String componentName = contor.getName();
+
                     if (robot.energyStatus() < 10) {
                         commandOutput.put("message", "ERROR: Not enough battery left. Cannot perform action");
+                    } else if (!robot.scannedEntities.contains(componentName)) {
+                        commandOutput.put("message", "ERROR: Subject not yet saved. Cannot perform action");
+                    } else if (!knowledgeBase.containsKey(componentName) || knowledgeBase.get(componentName).isEmpty()) {
+                        commandOutput.put("message", "ERROR: Fact not yet saved. Cannot perform action");
                     } else {
                         robot.battery -= 10;
+                        robot.scannedEntities.remove(componentName);
                         Cell currentCell = theMap.planetMaps[robot.getX()][robot.getY()];
-                        String improvementType = contor.getImprovementType();
-                        String componentName = contor.getName();
 
                         if (improvementType != null) {
                             if (improvementType.equals("plantVegetation")) {
@@ -177,19 +197,19 @@ public class Time {
                                 if (currentCell.soil != null) {
                                     currentCell.soil.addOrganicMatter(0.3);
                                     currentCell.soil.quality();
-                                    commandOutput.put("message", "The " + currentCell.soil.type + " was successfully fertilized using " + componentName);
+                                    commandOutput.put("message", "The soil was successfully fertilized using " + componentName);
                                 }
                             } else if (improvementType.equals("increaseHumidity")) {
                                 if (currentCell.air != null) {
                                     currentCell.air.increaseHumidity(0.2);
                                     currentCell.air.updateAirStatus();
-                                    commandOutput.put("message", "The " + currentCell.air.type + " was successfully increased using " + componentName);
+                                    commandOutput.put("message", "The humidity was successfully increased using " + componentName);
                                 }
                             } else if (improvementType.equals("increaseMoisture")) {
                                 if (currentCell.soil != null) {
                                     currentCell.soil.increaseWaterRetention(0.2);
                                     currentCell.soil.quality();
-                                    commandOutput.put("message", "The " + currentCell.soil.type + " was successfully increased using " + componentName);
+                                    commandOutput.put("message", "The moisture was successfully increased using " + componentName);
                                 }
                             } else {
                                 commandOutput.put("message", "The environment was improved successfully.");

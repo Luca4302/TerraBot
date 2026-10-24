@@ -7,6 +7,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import fileio.CommandInput;
 import fileio.TerritorySectionParamsInput;
 
+import java.util.HashSet;
+import java.util.Set;
+
 class PlanetMap {
     Cell[][] planetMaps;
     int rows, cols;
@@ -141,14 +144,18 @@ class PlanetMap {
         }
     }
 
-    public void applyWeather(CommandInput command) {
+    public boolean applyWeather(CommandInput command) {
+        boolean affected = false;
         for (int i = 0; i < rows; i++) {
             for (int j = 0; j < cols; j++) {
                 if (this.planetMaps[i][j].air != null) {
-                    this.planetMaps[i][j].air.changeWeatherConditions(command);
+                    if (this.planetMaps[i][j].air.changeWeatherConditions(command)) {
+                        affected = true;
+                    }
                 }
             }
         }
+        return affected;
     }
 
 
@@ -187,55 +194,81 @@ class PlanetMap {
     public void applyTimeInteractions(int currentTimestamp) {
         int rows = this.planetMaps.length;
         int cols = this.planetMaps[0].length;
-
         for (int i = 0; i < rows; i++) {
             for (int j = 0; j < cols; j++) {
                 Cell cell = this.planetMaps[i][j];
-
-                if (cell.soil != null && cell.plant != null && cell.plant.isScanned()) {
-                    cell.plant.grow(0.2); // Soil -> Plant (la fiecare iteratie)
+                if (cell.air != null) {
+                    cell.air.tickWeather();
                 }
-
+            }
+        }
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                Cell cell = this.planetMaps[i][j];
+                if (cell.soil != null && cell.plant != null && cell.plant.isScanned()) {
+                    cell.plant.grow(0.2);
+                }
+            }
+        }
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                Cell cell = this.planetMaps[i][j];
                 if (cell.water != null && cell.water.isScanned()) {
                     if (cell.plant != null && cell.plant.isScanned()) {
                         cell.plant.grow(0.2);
                     }
-
-                    if (currentTimestamp % 2 == 0) {
+                    int waterScannedTime = cell.water.getScannedTimestamp();
+                    if (currentTimestamp > waterScannedTime && (currentTimestamp - waterScannedTime) % 2 == 0) {
                         if (cell.air != null) {
-                            cell.air.increaseHumidity(0.1); // Water -> Air
+                            cell.air.increaseHumidity(0.1);
                         }
                         if (cell.soil != null) {
-                            cell.soil.increaseWaterRetention(0.1); // Water -> Soil
+                            cell.soil.increaseWaterRetention(0.1);
                         }
                     }
                 }
-
+            }
+        }
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                Cell cell = this.planetMaps[i][j];
                 if (cell.plant != null && cell.plant.isScanned()) {
-                    if (cell.air != null) {
-                        cell.air.addOxygen(cell.plant.oxigenGenerated());
-                    }
-
                     if (cell.plant.isDead()) {
                         cell.plant = null;
+                    } else if (cell.air != null) {
+                        cell.air.addOxygen(cell.plant.oxigenGenerated());
                     }
                 }
-
+            }
+        }
+        Set<Animal> processedAnimals = new HashSet<>();
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                Cell cell = this.planetMaps[i][j];
                 if (cell.animal != null && cell.animal.isScanned()) {
-                    if (cell.soil != null && cell.animal.getPendingSoilBonus() > 0) {
-                        cell.soil.addOrganicMatter(cell.animal.getPendingSoilBonus());
-                        cell.animal.resetPendingSoilBonus();
-                    }
+                    Animal currentAnimal = cell.animal;
+                    if (!processedAnimals.contains(currentAnimal)) {
+                        processedAnimals.add(currentAnimal);
+                        currentAnimal.x = i;
+                        currentAnimal.y = j;
 
-                    cell.animal.feed(this, i, j);
+                        int animalScannedTime = currentAnimal.getScannedTimestamp();
+                        if (currentTimestamp > animalScannedTime && (currentTimestamp - animalScannedTime) % 2 == 0) {
+                            currentAnimal.animalMovement(this, currentAnimal.x, currentAnimal.y);
+                        }
 
-                    if (currentTimestamp % 2 == 0) {
-                        cell.animal.animalMovement(this, i, j);
+                        currentAnimal.feed(this, currentAnimal.x, currentAnimal.y);
+                        Cell newCell = this.planetMaps[currentAnimal.x][currentAnimal.y];
+                        if (newCell.soil != null && currentAnimal.getPendingSoilBonus() > 0) {
+                            newCell.soil.addOrganicMatter(currentAnimal.getPendingSoilBonus());
+                            currentAnimal.resetPendingSoilBonus();
+                        }
                     }
                 }
             }
         }
     }
 }
+
 
 

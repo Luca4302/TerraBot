@@ -48,7 +48,7 @@ class Water extends Entity {
     }
 
     public void consume(double amount) {
-        this.mass -= amount;
+        this.mass = Math.round((this.mass - amount) * 100.0) / 100.0;
         if (this.mass < 0) {
             this.mass = 0.0;
         }

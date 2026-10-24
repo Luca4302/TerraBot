@@ -11,7 +11,7 @@ class TerraBot implements TerraBotActions {
     int x;
     @Getter
     int y;
-    ArrayList<String> scannedEntities = new ArrayList<String>();
+    ArrayList<String> scannedEntities = new ArrayList<>();
 
     public TerraBot(int energieStart) {
         this.battery = energieStart;
@@ -31,13 +31,13 @@ class TerraBot implements TerraBotActions {
 
     @Override
     public boolean move(PlanetMap theMap) {
-        int[] dx = {-1, 0, 1, 0};
-        int[] dy = {0, 1, 0, -1};
+        int[] dx = {0, 1, 0, -1};
+        int[] dy = {1, 0, -1, 0};
         int rows = theMap.planetMaps.length;
         int cols = theMap.planetMaps[0].length;
 
-        int bestX = this.x;
-        int bestY = this.y;
+        int bestX = -1;
+        int bestY = -1;
         int minDangerScore = Integer.MAX_VALUE;
         for (int i = 0; i < 4; i++) {
             int nx = this.x + dx[i];
@@ -54,7 +54,7 @@ class TerraBot implements TerraBotActions {
                 }
             }
         }
-        if (this.battery < minDangerScore) {
+        if (bestX == -1 || bestY == -1 || this.battery < minDangerScore) {
             return false;
         }
         this.x = bestX;
@@ -70,7 +70,7 @@ class TerraBot implements TerraBotActions {
         double plantDanger = 0.0;
         double airDanger = 0.0;
         if (neighbor.soil != null) {
-            soilDanger = neighbor.soil.terraBotStuck();
+            soilDanger = Math.round(neighbor.soil.terraBotStuck() * 100.0) / 100.0;
             count++;
         }
         if (neighbor.animal != null) {
@@ -81,7 +81,6 @@ class TerraBot implements TerraBotActions {
             plantDanger = neighbor.plant.getPlantStuckChance();
             count++;
         }
-
         if (neighbor.air != null) {
             airDanger = neighbor.air.getAirDamage();
             count++;
@@ -94,6 +93,10 @@ class TerraBot implements TerraBotActions {
 
     @Override
     public String scanner(String color, String sound, String smell, PlanetMap theMap) {
+        return scanner(color, sound, smell, theMap, 0);
+    }
+
+    public String scanner(String color, String sound, String smell, PlanetMap theMap, int currentTimestamp) {
         this.battery -= 7;
         Cell currentCell = theMap.planetMaps[this.x][this.y];
 
@@ -101,44 +104,26 @@ class TerraBot implements TerraBotActions {
 
         if (color.equals("none") && smell.equals("none") && sound.equals("none")) {
             if (currentCell.water != null) {
-                currentCell.water.setScanned();
-                if (!scannedEntities.contains(currentCell.water.name)) {
-                    scannedEntities.add(currentCell.water.name);
-                }
+                currentCell.water.setScanned(currentTimestamp);
+                scannedEntities.add(currentCell.water.name);
                 entityType = "water";
             }
         } else if (!sound.equals("none")) {
             if (currentCell.animal != null) {
-                currentCell.animal.setScanned();
-                if (!scannedEntities.contains(currentCell.animal.name)) {
-                    scannedEntities.add(currentCell.animal.name);
-                }
+                currentCell.animal.setScanned(currentTimestamp);
+                scannedEntities.add(currentCell.animal.name);
                 entityType = "animal";
             }
         } else {
             if (currentCell.plant != null) {
-                currentCell.plant.setScanned();
-                if (!scannedEntities.contains(currentCell.plant.name)) {
-                    scannedEntities.add(currentCell.plant.name);
-                }
+                currentCell.plant.setScanned(currentTimestamp);
+                scannedEntities.add(currentCell.plant.name);
                 entityType = "plant";
             }
         }
 
-        if (currentCell.air != null) currentCell.air.setScanned();
-        if (currentCell.soil != null) currentCell.soil.setScanned();
+        if (currentCell.air != null) currentCell.air.setScanned(currentTimestamp);
+        if (currentCell.soil != null) currentCell.soil.setScanned(currentTimestamp);
         return entityType;
-    }
-
-    public void accidentFinal(Plants.PlantType plantAccidentChance) {
-        accidentTerraBotChance = plantAccidentChance.getterAccident();
-    }
-
-    enum TerraBotInventory {
-        Plants,
-        Animals,
-        Water
-        //Actionam terrBot.collect
-        //Bagam in inventar (arrayList)si eliminam din celula
     }
 }

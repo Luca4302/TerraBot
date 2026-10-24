@@ -27,15 +27,18 @@ class Plants extends Entity {
     }
 
     public void grow(double value) {
-        plantMaturity += value;
-        if (plantMaturity >= 1) {
-            plantMaturity = 0;
+        plantMaturity = Math.round((plantMaturity + value) * 100.0) / 100.0;
+        if (plantMaturity >= 1.0) {
+            plantMaturity = 0.0;
             stageIndex++;
         }
         this.plantAge = setMaturity();
     }
 
     public double oxigenGenerated() {
+        if (this.isDead()) {
+            return 0.0;
+        }
         oxygenLevel = this.plantAge.getter() + this.plantDetails.getter();
         return oxygenLevel;
     }

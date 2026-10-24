@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import fileio.CommandInput;
 
 abstract class Air extends Entity {
+    protected double weatherModifier = 0.0;
+    protected int weatherDuration = 0;
     protected double humidity;
     protected double temperature;
     protected double oxygenLevel;
@@ -22,9 +24,20 @@ abstract class Air extends Entity {
 
     public abstract double airQuality();
 
-    public abstract void changeWeatherConditions(CommandInput comandaVreme);
+    public abstract boolean changeWeatherConditions(CommandInput comandaVreme);
 
     public abstract double MaxScore();
+    public void tickWeather() {
+        if (this.weatherDuration > 0) {
+            this.weatherDuration--;
+            if (this.weatherDuration == 0) {
+                this.weatherModifier = 0.0;
+                onWeatherExpired();
+                updateAirStatus();
+            }
+        }
+    }
+    protected void onWeatherExpired() {}
     @JsonIgnore
     public double getAirDamage() {
         return this.toxicityScore();
@@ -42,7 +55,8 @@ abstract class Air extends Entity {
     }
 
     public void updateAirStatus() {
-        this.airQualityScore = Math.round(Math.max(0, Math.min(100, airQuality())) * 100.0) / 100.0;
+        double rawScore = airQuality() + weatherModifier;
+        this.airQualityScore = finalScore(rawScore);
         this.toxicityLevel = toxicityScore();
         this.isAirToxic = airToxic();
         this.airQualityLevel = determineQuality(airQualityScore);
@@ -55,12 +69,12 @@ abstract class Air extends Entity {
 
 
     public void increaseHumidity(double amount) {
-        this.humidity += amount;
+        this.humidity = Math.round((this.humidity + amount) * 100.0) / 100.0;
         updateAirStatus();
     }
 
     public void addOxygen(double amount) {
-        this.oxygenLevel += amount;
+        this.oxygenLevel = Math.round((this.oxygenLevel + amount) * 100.0) / 100.0;
         updateAirStatus();
     }
 
@@ -72,19 +86,21 @@ abstract class Air extends Entity {
             this.co2Level = co2Level;
             updateAirStatus();
         }
-        public double getCo2Level() { return co2Level; }
+        public double getCo2Level() { return Math.round(co2Level * 100.0) / 100.0; }
         public double airQuality() {
             double score = (oxygenLevel * 2) + (humidity * 0.5) - (co2Level * 0.01);
             return finalScore(score);
         }
 
         @Override
-        public void changeWeatherConditions(CommandInput comandaVreme) {
-            if (comandaVreme != null && comandaVreme.getType() != null && comandaVreme.getType().equals("rainfall")) {
-                double rainfall = comandaVreme.getRainfall();
-                this.airQualityScore += (rainfall * 0.3);
+        public boolean changeWeatherConditions(CommandInput comandaVreme) {
+            if (comandaVreme != null && "rainfall".equals(comandaVreme.getType())){
+                this.weatherModifier = comandaVreme.getRainfall() * 0.3;
+                this.weatherDuration = 2;
                 updateAirStatus();
+                return true;
             }
+            return false;
         }
 
         @Override
@@ -109,12 +125,14 @@ abstract class Air extends Entity {
         }
 
         @Override
-        public void changeWeatherConditions(CommandInput comandaVreme) {
-            if (comandaVreme != null && comandaVreme.getType() != null && comandaVreme.getType().equals("polarStorm")) {
-                double vant = comandaVreme.getWindSpeed();
-                this.airQualityScore = this.airQualityScore - (vant * 0.2);
+        public boolean changeWeatherConditions(CommandInput comandaVreme) {
+            if (comandaVreme != null && "polarStorm".equals(comandaVreme.getType())){
+                this.weatherModifier = -(comandaVreme.getWindSpeed() * 0.2);
+                this.weatherDuration = 2;
                 updateAirStatus();
+                return true;
             }
+            return false;
         }
 
         @Override
@@ -139,16 +157,15 @@ abstract class Air extends Entity {
         }
 
         @Override
-        public void changeWeatherConditions(CommandInput comandaVreme) {
-            if (comandaVreme != null && comandaVreme.getType() != null && comandaVreme.getType().equals("newSeason")) {
+        public boolean changeWeatherConditions(CommandInput comandaVreme) {
+            if (comandaVreme != null && "newSeason".equals(comandaVreme.getType())) {
                 String season = comandaVreme.getSeason();
-                double seasonPenalty = 0.0;
-                if (season.equalsIgnoreCase("Spring")) {
-                    seasonPenalty = 15.0;
-                }
-                airQualityScore -= seasonPenalty;
+                this.weatherModifier = (season != null && season.equalsIgnoreCase("Spring")) ? -15.0 : 0.0;
+                this.weatherDuration = 2;
+                updateAirStatus();
+                return true;
             }
-            updateAirStatus();
+            return false;
         }
 
         @Override
@@ -166,8 +183,9 @@ abstract class Air extends Entity {
             this.desertStorm = false;
             updateAirStatus();
         }
+        @JsonIgnore
         public double getDustParticles() { return dustParticles; }
-        public boolean isDesertStorm() { return desertStorm; }
+
         @Override
         public double airQuality() {
             double score = (oxygenLevel * 2) - (dustParticles * 0.2) - (temperature * 0.3);
@@ -175,14 +193,22 @@ abstract class Air extends Entity {
         }
 
         @Override
-        public void changeWeatherConditions(CommandInput comandaVreme) {
-            if (comandaVreme != null && comandaVreme.getType() != null && comandaVreme.getType().equals("desertStorm")) {
+        public boolean changeWeatherConditions(CommandInput comandaVreme) {
+            if (comandaVreme != null && "desertStorm".equals(comandaVreme.getType())) {
                 this.desertStorm = comandaVreme.isDesertStorm();
                 airQualityScore = this.airQuality() - (this.desertStorm ? 30 : 0);
+                this.weatherModifier = this.desertStorm ? -30.0 : 0.0;
+                this.weatherDuration = 2;
+                updateAirStatus();
+                return true;
             }
-            updateAirStatus();
+            return false;
         }
-
+        public boolean isDesertStorm() { return desertStorm; }
+        @Override
+        protected void onWeatherExpired() {
+            this.desertStorm = false;
+        }
         @Override @JsonIgnore
         public double MaxScore() {
             return 65;
@@ -206,12 +232,14 @@ abstract class Air extends Entity {
         }
 
         @Override
-        public void changeWeatherConditions(CommandInput comandaVreme) {
-            if (comandaVreme != null && comandaVreme.getType() != null && comandaVreme.getType().equals("peopleHiking")) {
-                double hikerNumber = comandaVreme.getNumberOfHikers();
-                airQualityScore -= (hikerNumber * 0.1);
+        public boolean changeWeatherConditions(CommandInput comandaVreme) {
+            if (comandaVreme != null && "peopleHiking".equals(comandaVreme.getType())){
+                this.weatherModifier = -(comandaVreme.getNumberOfHikers() * 0.1);
+                this.weatherDuration = 2;
+                updateAirStatus();
+                return true;
             }
-            updateAirStatus();
+            return false;
         }
 
         @Override

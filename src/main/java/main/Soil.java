@@ -33,22 +33,17 @@ abstract class Soil extends Entity {
         soilScoreLevelWord = (finalScore);
     }
 
-    public void absorbWater() {
-        this.waterRetention += 0.1;
-        this.quality();  // Obligatoriu! Ca sa recalculeze finalScore cu noul +0.1 la apa
-    }
-
 //mai tarziu interactiunea cu mediul
 //poate muti normalise quality si rotunjirea sa cuprinda si air si soil cumva.. in entity POATE
 //la fel ca la air e basic
 //vezi cum interactioneaza cu plantele
 
     public void increaseWaterRetention(double amount) {
-        this.waterRetention += amount;
+        this.waterRetention = Math.round((this.waterRetention + amount) * 100.0) / 100.0;
     }
 
     public void addOrganicMatter(double amount) {
-        this.organicMatter += amount;
+        this.organicMatter = Math.round((this.organicMatter + amount) * 100.0) / 100.0;
     }
 
     public static class ForestSoil extends Soil {
